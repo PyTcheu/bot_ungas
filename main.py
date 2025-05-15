@@ -215,7 +215,8 @@ with st.expander("➕ Criar nova Raid"):
                     "reservas": [],
                     "criador": st.session_state.get("usuario_logado", "")
                 }
-                save_raids([raid])
+                raids.append(raid)
+                save_raids(raids)
                 st.success(f"Raid '{nome}' criada com sucesso!")
                 st.rerun()
                 
