@@ -338,12 +338,12 @@ def exibir_raids(raids_lista):
                                         if len(raid["titulares"]) < 6:
                                             raid["titulares"].append(nome_participante)
                                             st.success("Inscrito como titular!")
-                                            save_raids(st.session_state.raids)
+                                            save_raids(raid)
                                             st.rerun()
                                         elif len(raid["reservas"]) < 3:
                                             raid["reservas"].append(nome_participante)
                                             st.success("Inscrito como reserva!")
-                                            save_raids(st.session_state.raids)
+                                            save_raids(raid)
                                             st.rerun()
                                         else:
                                             st.error("A raid está cheia.")
