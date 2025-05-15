@@ -224,8 +224,7 @@ def exibir_raids(raids_lista):
                             z-index: 0;
                         "></div>
                         <div style="position: relative; z-index: 1; color: white; padding: 20px; height: 100%; overflow-y: auto;">
-                            <h5 style="margin-bottom: 0.2rem; font-style: italic;">{raid['tipo']}</h5>
-                            <h4>{raid['nome']}</h4>
+                            <h5 style="margin-bottom: 0.2rem; font-style: italic;">{raid['tipo']} - {raid['nome']}</h5>
                             <p><b>Data e Hora:</b> {raid['datahora'].strftime('%d/%m/%Y %H:%M')}</p>
                             <p><b>Dificuldade:</b> {raid['dificuldade']}</p>
                             <p><b>Desafios/Triunfos:</b><br>{desafios_html}</p>
@@ -298,13 +297,30 @@ def exibir_raids(raids_lista):
                                         else:
                                             st.error("A raid está cheia.")
                         with col2:
-                            if st.session_state.get("usuario_logado") == raid.get("criador"):
-                                # Botão cancelar raid
+                            usuario = st.session_state.get("usuario_logado")
+                            criador = raid.get("criador")
+
+                            if usuario == criador:
+                                # Botão cancelar raid (para o criador)
                                 if st.form_submit_button("❌ Cancelar Raid", type="primary"):
                                     st.session_state.raid_a_cancelar = raid
                                     st.session_state.mostrar_confirmacao = True
                                     st.rerun()
-
+                            else:
+                                # Botão sair da raid (para participantes que não são criadores)
+                                if usuario in raid["titulares"]:
+                                    if st.form_submit_button("🚪 Sair como Titular", type="secondary"):
+                                        raid["titulares"].remove(usuario)
+                                        st.success("Você saiu como titular da raid.")
+                                        save_raids(st.session_state.raids)
+                                        st.rerun()
+                                elif usuario in raid["reservas"]:
+                                    if st.form_submit_button("🚪 Sair como Reserva", type="secondary"):
+                                        raid["reservas"].remove(usuario)
+                                        st.success("Você saiu como reserva da raid.")
+                                        save_raids(st.session_state.raids)
+                                        st.rerun()
+                                        
                 # Mostrar confirmação inline se essa raid é a que está para cancelar
                 if st.session_state.mostrar_confirmacao and st.session_state.raid_a_cancelar == raid:
                     st.warning(f"Tem certeza que deseja cancelar a raid '{raid['nome']}'?")
