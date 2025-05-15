@@ -82,6 +82,11 @@ if "mostrar_confirmacao" not in st.session_state:
 if "raid_a_cancelar" not in st.session_state:
     st.session_state.raid_a_cancelar = None
 
+# --- Cores para os cards ---
+raids = load_raids()
+agora = datetime.now()
+ativas = []
+concluidas = []
 # --- Funções auxiliares ---
 
 def hash_password(password):
@@ -94,26 +99,6 @@ def save_users(users):
         writer.writeheader()
         for nome, senha in users.items():
             writer.writerow({"nome": nome, "senha": senha})
-
-def load_raids():
-    raids = []
-    if os.path.exists(RAIDS_CSV):
-        with open(RAIDS_CSV, newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                # Converter campos que precisam
-                raid = {
-                    "tipo": row["tipo"],
-                    "nome": row["nome"],
-                    "datahora": datetime.fromisoformat(row["datahora"]),
-                    "dificuldade": row["dificuldade"],
-                    "desafios": row["desafios"],
-                    "titulares": row["titulares"].split(";") if row["titulares"] else [],
-                    "reservas": row["reservas"].split(";") if row["reservas"] else [],
-                    "criador": row["criador"]
-                }
-                raids.append(raid)
-    return raids
 
 def save_raids(raids):
     with open(RAIDS_CSV, "w", newline="", encoding="utf-8") as f:
@@ -185,7 +170,7 @@ with st.sidebar:
 
 # --- Função para salvar e atualizar raids após qualquer modificação ---
 def salvar_e_atualizar():
-    save_raids(st.session_state.raids)
+    save_raids(raids)
 
 # Lista de tipos de raid disponíveis
 tipos_de_raid = [
@@ -216,7 +201,7 @@ with st.expander("➕ Criar nova Raid"):
             st.warning("Informe um nome válido para a raid.")
         else:
             # Verificar se já existe raid com o mesmo nome
-            nomes_existentes = [r["nome"].lower() for r in st.session_state.raids]
+            nomes_existentes = [r["nome"].lower() for r in raids]
             if nome.strip().lower() in nomes_existentes:
                 st.error("Já existe uma raid com esse nome. Escolha outro nome.")
             else:
@@ -230,17 +215,12 @@ with st.expander("➕ Criar nova Raid"):
                     "reservas": [],
                     "criador": st.session_state.get("usuario_logado", "")
                 }
-                st.session_state.raids.append(raid)
-                save_raids(st.session_state.raids)
+                save_raids([raid])
                 st.success(f"Raid '{nome}' criada com sucesso!")
                 st.rerun()
                 
 
-# --- Cores para os cards ---
-raids = load_raids()
-agora = datetime.now()
-ativas = []
-concluidas = []
+
 
 for raid in raids:
     if raid["datahora"] + timedelta(hours=1) < agora:
@@ -338,12 +318,12 @@ def exibir_raids(raids_lista):
                                         if len(raid["titulares"]) < 6:
                                             raid["titulares"].append(nome_participante)
                                             st.success("Inscrito como titular!")
-                                            save_raids(raid)
+                                            save_raids([raid])
                                             st.rerun()
                                         elif len(raid["reservas"]) < 3:
                                             raid["reservas"].append(nome_participante)
                                             st.success("Inscrito como reserva!")
-                                            save_raids(raid)
+                                            save_raids([raid])
                                             st.rerun()
                                         else:
                                             st.error("A raid está cheia.")
@@ -363,13 +343,13 @@ def exibir_raids(raids_lista):
                                     if st.form_submit_button("🚪 Sair como Titular", type="secondary"):
                                         raid["titulares"].remove(usuario)
                                         st.success("Você saiu como titular da raid.")
-                                        save_raids(st.session_state.raids)
+                                        save_raids(raids)
                                         st.rerun()
                                 elif usuario in raid["reservas"]:
                                     if st.form_submit_button("🚪 Sair como Reserva", type="secondary"):
                                         raid["reservas"].remove(usuario)
                                         st.success("Você saiu como reserva da raid.")
-                                        save_raids(st.session_state.raids)
+                                        save_raids(raids)
                                         st.rerun()
                                         
                 # Mostrar confirmação inline se essa raid é a que está para cancelar
@@ -382,7 +362,7 @@ def exibir_raids(raids_lista):
                             st.session_state.raid_a_cancelar = None
                             st.session_state.mostrar_confirmacao = False
                             st.success("Raid cancelada com sucesso.")
-                            save_raids(st.session_state.raids)
+                            save_raids(raids)
                             st.rerun()
                     with col_cancelar:
                         if st.button("Não, manter raid"):
