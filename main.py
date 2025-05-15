@@ -4,17 +4,59 @@ import hashlib
 import csv
 from datetime import datetime, timedelta
 import os
+import json
 
 st.set_page_config(layout="wide")
+
+from streamlit_autorefresh import st_autorefresh
+from streamlit_cookies_manager import EncryptedCookieManager
+
+cookies = EncryptedCookieManager(
+    prefix="raidmanager/",
+    password="algumasecretkey"
+)
+if not cookies.ready():
+    st.stop()
+
+
+# Restaurar login do cookie (apenas uma vez)
+if "usuario_logado" not in st.session_state:
+    usuario_cookie = cookies.get("usuario")
+    if usuario_cookie:
+        usuario_data = json.loads(usuario_cookie)
+        usuario = usuario_data["value"]
+        st.session_state.usuario_logado = usuario
+    else:
+        st.session_state.usuario_logado = ""
+
+# ⛔ MOVER o st_autorefresh para depois da checagem de login
+if st.session_state.usuario_logado:
+    from streamlit_autorefresh import st_autorefresh
+    st_autorefresh(interval=3000, limit=None, key="refresh")
 
 # --- Configurações dos arquivos CSV ---
 USERS_CSV = "users.csv"
 RAIDS_CSV = "raids.csv"
 
-# --- Funções auxiliares ---
-
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
+def load_raids():
+    raids = []
+    if os.path.exists(RAIDS_CSV):
+        with open(RAIDS_CSV, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                # Converter campos que precisam
+                raid = {
+                    "tipo": row["tipo"],
+                    "nome": row["nome"],
+                    "datahora": datetime.fromisoformat(row["datahora"]),
+                    "dificuldade": row["dificuldade"],
+                    "desafios": row["desafios"],
+                    "titulares": row["titulares"].split(";") if row["titulares"] else [],
+                    "reservas": row["reservas"].split(";") if row["reservas"] else [],
+                    "criador": row["criador"]
+                }
+                raids.append(raid)
+    return raids
 
 def load_users():
     users = {}
@@ -24,6 +66,30 @@ def load_users():
             for row in reader:
                 users[row["nome"]] = row["senha"]
     return users
+# --- Inicialização do estado da aplicação ---
+
+if "users" not in st.session_state:
+    st.session_state.users = load_users()
+
+if "raids" not in st.session_state:
+    st.session_state.raids = load_raids()
+
+if "usuario_logado" not in st.session_state:
+    user_cookie = cookies.get("usuario")
+    if user_cookie:
+        st.session_state.usuario_logado = user_cookie
+
+if "mostrar_confirmacao" not in st.session_state:
+    st.session_state.mostrar_confirmacao = False
+
+if "raid_a_cancelar" not in st.session_state:
+    st.session_state.raid_a_cancelar = None
+
+# --- Funções auxiliares ---
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
 
 def save_users(users):
     with open(USERS_CSV, "w", newline="", encoding="utf-8") as f:
@@ -78,22 +144,6 @@ def set_background_image_local(image_path):
     bin_str = get_base64_of_bin_file(image_path)
     return f"url('data:image/jpeg;base64,{bin_str}')"
 
-# --- Inicialização do estado da aplicação ---
-
-if "users" not in st.session_state:
-    st.session_state.users = load_users()
-
-if "raids" not in st.session_state:
-    st.session_state.raids = load_raids()
-
-if "usuario_logado" not in st.session_state:
-    st.session_state.usuario_logado = ""
-
-if "mostrar_confirmacao" not in st.session_state:
-    st.session_state.mostrar_confirmacao = False
-
-if "raid_a_cancelar" not in st.session_state:
-    st.session_state.raid_a_cancelar = None
 
 # --- Login e Cadastro ---
 
@@ -118,6 +168,10 @@ with st.sidebar:
                 st.error("Senha incorreta.")
             else:
                 st.session_state.usuario_logado = usuario
+                cookies["usuario"] = json.dumps({
+                    "value": usuario,
+                    "expires_at": (datetime.now() + timedelta(days=7)).isoformat()
+                })
                 st.success(f"Bem-vindo, {usuario}!")
                 st.rerun()
 
