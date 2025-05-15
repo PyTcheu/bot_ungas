@@ -36,7 +36,7 @@ if "usuario_logado" not in st.session_state:
 # ⛔ MOVER o st_autorefresh para depois da checagem de login
 if st.session_state.usuario_logado:
     from streamlit_autorefresh import st_autorefresh
-    st_autorefresh(interval=5000, limit=None, key="refresh")
+    st_autorefresh(interval=15000, limit=None, key="refresh")
 
 def load_raids():
     raids = []
