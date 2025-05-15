@@ -358,7 +358,7 @@ def exibir_raids(raids_lista):
                     col_confirmar, col_cancelar = st.columns(2)
                     with col_confirmar:
                         if st.button("Sim, cancelar agora"):
-                            st.session_state.raids.remove(raid)
+                            raids.remove(raid)
                             st.session_state.raid_a_cancelar = None
                             st.session_state.mostrar_confirmacao = False
                             st.success("Raid cancelada com sucesso.")
