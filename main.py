@@ -18,6 +18,10 @@ cookies = EncryptedCookieManager(
 if not cookies.ready():
     st.stop()
 
+# --- Configurações dos arquivos CSV ---
+USERS_CSV = "users.csv"
+RAIDS_CSV = "raids.csv"
+
 
 # Restaurar login do cookie (apenas uma vez)
 if "usuario_logado" not in st.session_state:
@@ -32,11 +36,7 @@ if "usuario_logado" not in st.session_state:
 # ⛔ MOVER o st_autorefresh para depois da checagem de login
 if st.session_state.usuario_logado:
     from streamlit_autorefresh import st_autorefresh
-    st_autorefresh(interval=3000, limit=None, key="refresh")
-
-# --- Configurações dos arquivos CSV ---
-USERS_CSV = "users.csv"
-RAIDS_CSV = "raids.csv"
+    st_autorefresh(interval=5000, limit=None, key="refresh")
 
 def load_raids():
     raids = []
@@ -70,9 +70,6 @@ def load_users():
 
 if "users" not in st.session_state:
     st.session_state.users = load_users()
-
-if "raids" not in st.session_state:
-    st.session_state.raids = load_raids()
 
 if "usuario_logado" not in st.session_state:
     user_cookie = cookies.get("usuario")
@@ -240,7 +237,7 @@ with st.expander("➕ Criar nova Raid"):
                 
 
 # --- Cores para os cards ---
-raids = st.session_state.raids
+raids = load_raids()
 agora = datetime.now()
 ativas = []
 concluidas = []
